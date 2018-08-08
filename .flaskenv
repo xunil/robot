@@ -1,0 +1,2 @@
+FLASK_APP=robot.py
+FLASK_DEBUG=1
