@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    {{ super() }}
+    <style>
+    .col-centered{
+        float: none;
+        margin: 0 auto;
+    }
+    </style>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+    function activate_button(btnName) {
+        var buttons = ['live_play', 'jukebox', 'record'];
+        var idx = buttons.indexOf(btnName);
+        if (idx > -1) {
+            buttons.splice(idx, 1);
+        }
+        buttons.forEach(function(e) {
+            var n = '#' + e;
+            $(n).removeClass('btn-primary');
+            $(n).removeClass('active');
+            $(n).removeAttr('role');
+            $(n).removeAttr('aria-pressed');
+            if (n == 'record') {
+                $('#record').attr('onclick', 'start_record()');
+            }
+        });
+        if (btnName == 'record') {
+            $('#' + btnName).addClass('btn-danger');
+            $('#' + btnName).text('Stop Recording');
+            $('#' + btnName).attr('onclick', 'stop_record()');
+        } else {
+            $('#' + btnName).addClass('btn-primary');
+        }
+        $('#' + btnName).addClass('active');
+        $('#' + btnName).attr('role', 'button');
+        $('#' + btnName).attr('aria-pressed', 'true');
+    }
+    function start_record() {
+        $.post('/start_record', {}).done(function(response) {
+            activate_button('record');
+        }).fail(function() {
+            $('#derp').text('Failed');
+        });
+    }
+    // TODO: Detect that recording is in progress and call this function
+    // if another button (Jukebox, Live Play) is clicked instead of the
+    // Stop Recording button.
+    function stop_record() {
+        $.post('/stop_record', {}).done(function(response) {
+            activate_button('live_play');
+            $('#record').removeClass('btn-danger');
+            $('#record').text('Record');
+            $('#record').attr('onclick', 'start_record()');
+        }).fail(function() {
+            $('#derp').text('Failed');
+        });
+    }
+    function start_jukebox() {
+        $.post('/jukebox', {}).done(function(response) {
+            activate_button('jukebox');
+        }).fail(function() {
+            $('#derp').text('Failed');
+        });
+    }
+    function start_live_play() {
+        $.post('/live_play', {}).done(function(response) {
+            activate_button('live_play');
+        }).fail(function() {
+            $('#derp').text('Failed');
+        });
+    }
+    function get_current_mode() {
+        $.get('/mode').done(function(response) {
+            activate_button(response['mode']);
+        }).fail(function() {
+            $('#derp').text('Failed');
+        });
+    }
+    // XXX: This will put is in Live Play mode when the page loads.
+    // This isn't desirable because a page reload will interrupt any
+    // existing mode setting.
+    // Instead develop an endpoint to fetch the current mode and set accordingly.
+    get_current_mode();
+    </script>
+{% endblock %}
+
+{% block app_content %}
+
+<div class="col-sm-2 col-centered">
+<h1>R.O.B.O.T.</h1>
+<button id="live_play" type="button" class="btn btn-lg" onclick="start_live_play()">Live Play</button>
+<button id="record" type="button" class="btn btn-lg" onclick="start_record()">Record</button>
+<button id="jukebox" type="button" class="btn btn-lg" onclick="start_jukebox()">Jukebox</button>
+</div>
+
+<span id="derp"></span>
+</div>
+
+{% endblock %}
+
