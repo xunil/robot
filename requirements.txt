@@ -3,6 +3,7 @@ Flask==1.0.2
 itsdangerous==0.24
 Jinja2==2.10
 MarkupSafe==1.0
--e git://github.com/xunil/python-midi.git@xunil/fix-pickling#egg=midi
+mido==1.2.8
 python-dotenv==0.9.1
+python-rtmidi==1.1.1
 Werkzeug==0.14.1
