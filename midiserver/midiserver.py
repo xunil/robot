@@ -10,7 +10,7 @@ import time
 
 CLIENT = 24
 PORT   = 0
-SKY_PI_ADDR = '192.168.2.49'
+SKY_PI_ADDR = '192.168.2.48'
 SKY_PI_PORT = 23840
 CMD_PORT = 23850
 
@@ -25,25 +25,12 @@ class MIDIServer:
         logging.basicConfig(filename='midiserver.log', format='%(asctime)s %(message)s', level=logging.DEBUG)
         self.mode = LIVE_PLAY
 
-    def connect_to_sky_pi(self):
-        while True:
-            try:
-                self.skypi = sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect((SKY_PI_ADDR, SKY_PI_PORT))
-                break
-            except socket.error as e:
-                logging.info('Failed to connect to Sky Pi: %s' % e)
-                logging.info('Sleeping 3 seconds and trying again.')
-                time.sleep(3)
-                continue
-
     def setup_midi_sequencer(self):
         # TODO: May need to adjust sequencer resolution
         self.seq = sequencer.SequencerRead(sequencer_resolution=128)
         # TODO: Sequencer device discovery
         self.seq.subscribe_port(CLIENT, PORT)
         self.seq.start_sequencer()
-        pass
 
     def handle_command_channel(self):
         self.cmd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -72,11 +59,18 @@ class MIDIServer:
             conn.close()
             
 
-    def run(self):
-        self.setup_midi_sequencer()
+    def connect_to_sky_pi(self):
+        while True:
+            try:
+                self.skypi = sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect((SKY_PI_ADDR, SKY_PI_PORT))
+                break
+            except socket.error as e:
+                logging.info('Failed to connect to Sky Pi: %s' % e)
+                logging.info('Sleeping 3 seconds and trying again.')
+                time.sleep(3)
 
-        self.command_thread = Thread(target=self.handle_command_channel, args=())
-        
+    def handle_midi_loop(self):
         while True:
             self.connect_to_sky_pi()
             while True:
@@ -89,6 +83,14 @@ class MIDIServer:
                 finally:
                     self.skypi.close()
             logging.warn('Lost connection to Sky Pi, reconnecting...')
+
+    def run(self):
+        self.command_thread = Thread(target=self.handle_command_channel, args=())
+        self.command_thread.start()
+        self.setup_midi_sequencer()
+        self.midi_thread = Thread(target=self.handle_midi_loop, args=())
+        self.midi_thread.start()
+
 
 
 if __name__ == '__main__':
