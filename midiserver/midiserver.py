@@ -8,9 +8,9 @@ from threading import Thread
 import time
 import re
 
-CLIENT_NAME = 'CH345'
+CLIENT_NAME = 'Keystation 49'
 
-SKY_PI_ADDR = '192.168.2.48'
+SKY_PI_ADDR = '192.168.2.49'
 SKY_PI_PORT = 23840
 CMD_PORT = 23850
 
@@ -81,15 +81,15 @@ class MIDIServer:
     def handle_midi_loop(self):
         while True:
             self.connect_to_sky_pi()
-            while True:
-                try:
+            try:
+                while True:
                     event = self.midi_input.receive()
                     logging.debug(repr(event))
                     self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
-                except socket.error:
-                    break
-                finally:
-                    self.skypi.close()
+            except socket.error:
+                break
+            finally:
+                self.skypi.close()
             logging.warn('Lost connection to Sky Pi, reconnecting...')
 
     def run(self):
