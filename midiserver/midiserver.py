@@ -1,15 +1,15 @@
 #!/usr/bin/env
 import cPickle as pickle
 import logging
-import midi
-from midi import sequencer_alsa as sequencer
+import mido
 import socket
 import sys
 from threading import Thread
 import time
+import re
 
-CLIENT = 24
-PORT   = 0
+CLIENT_NAME = 'CH345'
+
 SKY_PI_ADDR = '192.168.2.48'
 SKY_PI_PORT = 23840
 CMD_PORT = 23850
@@ -26,11 +26,19 @@ class MIDIServer:
         self.mode = LIVE_PLAY
 
     def setup_midi_sequencer(self):
-        # TODO: May need to adjust sequencer resolution
-        self.seq = sequencer.SequencerRead(sequencer_resolution=128)
-        # TODO: Sequencer device discovery
-        self.seq.subscribe_port(CLIENT, PORT)
-        self.seq.start_sequencer()
+        client_name = CLIENT_NAME
+        client_found = False
+        for port_name in mido.get_output_names():
+            if port_name.split(':')[0] == client_name:
+                client_name = port_name
+                client_found = True
+                break
+
+        if not client_found:
+            print >>sys.stderr, 'Could not find client named %s' % client_name
+            sys.exit(1)
+
+        self.midi_input = mido.open_input(client_name)
 
     def handle_command_channel(self):
         self.cmd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -75,7 +83,7 @@ class MIDIServer:
             self.connect_to_sky_pi()
             while True:
                 try:
-                    event = seq.event_read()
+                    event = self.midi_input.receive()
                     logging.debug(repr(event))
                     self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
                 except socket.error:
