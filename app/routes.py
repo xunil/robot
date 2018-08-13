@@ -8,7 +8,7 @@ def index():
 
 @app.route('/live_play', methods=['POST'])
 def live_play():
-    # XXX: play_mode is function local.
+    # XXX: connect to command socket and send command
     play_mode = LIVE_PLAY
     return jsonify({'status': 'OK'})
 
