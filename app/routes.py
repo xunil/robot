@@ -1,5 +1,6 @@
 from flask import render_template, jsonify
 from app import app
+from midiserver_command import midiserver_command
 
 @app.route('/')
 @app.route('/index')
@@ -14,7 +15,7 @@ def live_play():
 
 @app.route('/start_record', methods=['POST'])
 def start_record():
-    play_mode = RECORDING
+    play_mode = RECORD
     return jsonify({'status': 'OK'})
 
 @app.route('/stop_record', methods=['POST'])
@@ -30,3 +31,4 @@ def jukebox():
 @app.route('/mode', methods=['GET'])
 def current_mode():
     return jsonify({'mode': play_mode})
+
