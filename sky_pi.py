@@ -5,6 +5,8 @@ import cPickle as pickle
 import socket
 import sys
 
+from config import *
+
 client_name = 'CH345'
 client_found = False
 

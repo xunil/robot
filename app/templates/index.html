@@ -81,10 +81,6 @@
             $('#derp').text('Failed');
         });
     }
-    // XXX: This will put is in Live Play mode when the page loads.
-    // This isn't desirable because a page reload will interrupt any
-    // existing mode setting.
-    // Instead develop an endpoint to fetch the current mode and set accordingly.
     get_current_mode();
     </script>
 {% endblock %}

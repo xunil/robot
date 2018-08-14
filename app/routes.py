@@ -1,6 +1,9 @@
 from flask import render_template, jsonify
 from app import app
-from midiserver_command import midiserver_command
+from midiserver.command import command
+from config import *
+
+play_mode = None
 
 @app.route('/')
 @app.route('/index')
@@ -9,26 +12,32 @@ def index():
 
 @app.route('/live_play', methods=['POST'])
 def live_play():
-    # XXX: connect to command socket and send command
-    play_mode = LIVE_PLAY
-    return jsonify({'status': 'OK'})
+    success, result = command(LIVE_PLAY)
+    return jsonify({'status': success})
 
 @app.route('/start_record', methods=['POST'])
 def start_record():
-    play_mode = RECORD
-    return jsonify({'status': 'OK'})
+    success, result = command(RECORD)
+    if not success:
+        return jsonify({'status': False})
+    return jsonify({'status': True, 'filename': result[1]})
 
 @app.route('/stop_record', methods=['POST'])
 def stop_record():
-    play_mode = LIVE_PLAY
-    return jsonify({'status': 'OK'})
+    success, result = command(LIVE_PLAY)
+    if not success:
+        return jsonify({'status': False})
+    return jsonify({'status': True, 'filename': result[1]})
 
 @app.route('/jukebox', methods=['POST'])
 def jukebox():
-    play_mode = JUKEBOX
-    return jsonify({'status': 'OK'})
+    success, result = command(JUKEBOX)
+    return jsonify({'status': success})
 
 @app.route('/mode', methods=['GET'])
 def current_mode():
-    return jsonify({'mode': play_mode})
+    success, result = command(MODE)
+    if not success:
+        return jsonify({'status': False})
+    return jsonify({'status': True, 'mode': result[1]})
 

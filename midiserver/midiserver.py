@@ -3,6 +3,7 @@ import cPickle as pickle
 import logging
 import mido
 from mido import Message, MidiFile, MidiTrack
+from os.path import dirname, abspath
 import socket
 import sys
 from tempfile import mkstemp
@@ -10,17 +11,8 @@ from threading import Thread
 import time
 import re
 
-CLIENT_NAME = 'Keystation 49'
-
-SKY_PI_ADDR = '192.168.2.49'
-SKY_PI_PORT = 23840
-CMD_PORT = 23850
-
-LIVE_PLAY = 'live_play'
-JUKEBOX = 'jukebox'
-RECORD = 'record'
-
-RECORDING_DIR = '/home/pi/recordings'
+sys.path.append(dirname(dirname(abspath(__file__))))
+from config import *
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -59,22 +51,32 @@ class MIDIServer:
                 logging.info('Command channel connection from %s', cli_addr)
                 while True:
                     data = conn.recv(4096)
-                    command = data.strip()
-                    if command == 'mode':
-                        conn.sendall('%s\n' % self.mode)
-                    elif command == 'record':
-                        self.output_file,self.output_filename = mkstemp(suffix='.mid', prefix='recording', dir=RECORDING_DIR)
-                        self.mode = RECORD
-                        self.recording_thread = Thread(target=self.handle_recording, name='Recording', args=())
-                        self.recording_thread.start()
-                        conn.sendall('OK:%s\n' % self.output_filename)
-                    elif command == 'live_play':
-                        self.mode = LIVE_PLAY
-                        conn.sendall('OK:%s\n' % self.output_filename)
+                    if data:
+                        reply = 'ERR\n'
+                        command = data.strip()
+                        logging.debug('Command received: %s' % command)
+                        if command == 'mode':
+                            reply = 'OK:%s\n' % self.mode
+                        elif command == 'record':
+                            self.output_file,self.output_filename = mkstemp(suffix='.mid', prefix='recording', dir=RECORDING_DIR)
+                            self.mode = RECORD
+                            self.recording_thread = Thread(target=self.handle_recording, name='Recording', args=())
+                            self.recording_thread.start()
+                            reply = 'OK:%s\n' % self.output_filename
+                        elif command == 'live_play':
+                            self.mode = LIVE_PLAY
+                            reply = 'OK:%s\n' % self.output_filename
+                        else:
+                            logging.debug('Unknown command %s' % command)
+                        logging.debug('Sending reply: %s' % reply.strip())
+                        conn.sendall(reply)
                     else:
-                        conn.sendall('ERR\n')
+                        logging.debug('Closing command channel connection from %s', cli_addr)
+                        conn.close()
+                        break
         finally:
-            conn.close()
+            if conn:
+                conn.close()
 
     def connect_to_sky_pi(self):
         while True:
