@@ -7,18 +7,19 @@ import sys
 
 from config import *
 
-client_name = 'CH345'
+client_names = ['CH345', 'UM-1SX']
 client_found = False
+selected_client = None
 
 for port_name in mido.get_output_names():
-    if port_name.split(':')[0] == client_name:
-        client_name = port_name
+    if port_name.split(':')[0] in client_names:
+        selected_client = port_name
         client_found = True
         break
 
 if not client_found:
-    print >>sys.stderr, 'Could not find client named %s' % client_name
-    os.exit(1)
+    print >>sys.stderr, 'Could not find client named %s' % selected_client
+    sys.exit(1)
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -37,7 +38,7 @@ while True:
     try:
         print >>sys.stderr, 'connection from', client_address
 
-        with mido.open_output(client_name) as midi_out:
+        with mido.open_output(selected_client) as midi_out:
             # Receive the data in small chunks and retransmit it
             while True:
                 data = connection.recv(4096)
