@@ -1,6 +1,7 @@
-CLIENT_NAME = 'Keystation 49'
+MIDI_CLIENT_NAMES = ['Keystation 49', 'Keystation 61']
 
-SKY_PI_ADDR = '192.168.2.49'
+# TODO: Use avahi
+SKY_PI_ADDR = '192.168.10.219'
 SKY_PI_PORT = 23840
 CMD_PORT = 23850
 

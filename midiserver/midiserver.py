@@ -3,6 +3,7 @@ import cPickle as pickle
 import logging
 import mido
 from mido import Message, MidiFile, MidiTrack
+import os
 from os.path import dirname, abspath
 import socket
 import sys
@@ -22,10 +23,10 @@ class MIDIServer:
         self.mode = LIVE_PLAY
 
     def find_midi_client(self):
-        client_name = CLIENT_NAME
+        client_name = None
         client_found = False
         for port_name in mido.get_output_names():
-            if port_name.split(':')[0] == client_name:
+            if port_name.split(':')[0] in MIDI_CLIENT_NAMES:
                 client_name = port_name
                 client_found = True
                 break
@@ -133,6 +134,8 @@ class MIDIServer:
         logging.info('Exiting recording thread')
 
     def run(self):
+        if not os.path.isdir(RECORDING_DIR):
+            os.mkdir(RECORDING_DIR)
         self.command_thread = Thread(target=self.handle_command_channel, name='Command', args=())
         self.command_thread.start()
         self.midi_thread = Thread(target=self.handle_midi_loop, name='MIDI', args=())
