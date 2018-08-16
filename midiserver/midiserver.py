@@ -4,7 +4,7 @@ import logging
 import mido
 from mido import Message, MidiFile, MidiTrack
 import os
-from os.path import dirname, abspath
+from os.path import abspath, basename, dirname
 import socket
 import sys
 from tempfile import mkstemp
@@ -38,7 +38,7 @@ class MIDIServer:
     def get_midi_sequencer(self):
         client_name = self.find_midi_client()
         if client_name is None:
-            print >>sys.stderr, 'Could not find MIDI client named %s' % CLIENT_NAME
+            print >>sys.stderr, 'Could not find MIDI client matching %s' % repr(MIDI_CLIENT_NAMES)
             sys.exit(1)
         return mido.open_input(client_name)
 
@@ -63,10 +63,10 @@ class MIDIServer:
                             self.mode = RECORD
                             self.recording_thread = Thread(target=self.handle_recording, name='Recording', args=())
                             self.recording_thread.start()
-                            reply = 'OK:%s\n' % self.output_filename
+                            reply = 'OK:%s\n' % basename(self.output_filename)
                         elif command == 'live_play':
                             self.mode = LIVE_PLAY
-                            reply = 'OK:%s\n' % self.output_filename
+                            reply = 'OK:%s\n' % basename(self.output_filename)
                         else:
                             logging.debug('Unknown command %s' % command)
                         logging.debug('Sending reply: %s' % reply.strip())

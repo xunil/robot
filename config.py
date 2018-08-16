@@ -11,3 +11,4 @@ RECORD = 'record'
 MODE = 'mode'
 
 RECORDING_DIR = '/home/pi/recordings'
+JUKEBOX_DIR = '/home/pi/jukebox'

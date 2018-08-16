@@ -57,6 +57,7 @@
             $('#record').text('Record');
             $('#record').attr('onclick', 'start_record()');
             console.log(JSON.stringify(response));
+            $('#temp_name').val(response['filename']);
             $('#songNameModal').modal('show');
         }).fail(function() {
             $('#derp').text('Failed');
@@ -83,6 +84,25 @@
             $('#derp').text('Failed');
         });
     }
+    function rename_song() {
+        $.post('/rename', {"old": $('#temp_name').val(), "new": $('#song_name').val()}).done(function(response) {
+            $('#songNameModal').modal('hide');
+            $('#alerty').text('Saved file as ' + response['filename'])
+                .addClass('alert-success')
+                .show()
+                .delay(3000)
+                .hide(250)
+                .removeClass('alert-success');
+        }).fail(function(response) {
+            $('#alerty').text('Failed to save file: ' + response['reason'])
+                .addClass('alert-danger')
+                .show()
+                .delay(3000)
+                .hide(250)
+                .removeClass('alert-danger');
+        });
+    }
+
     get_current_mode();
     </script>
 {% endblock %}
@@ -91,9 +111,23 @@
 
 <div class="col-sm-2 col-centered">
 <h1>R.O.B.O.T.</h1>
-<button id="live_play" type="button" class="btn btn-lg" onclick="start_live_play()">Live Play</button>
-<button id="record" type="button" class="btn btn-lg" onclick="start_record()">Record</button>
-<button id="jukebox" type="button" class="btn btn-lg" onclick="start_jukebox()">Jukebox</button>
+    <div class="alert hidden" id="alerty" role="alert">
+          ...
+    </div>
+    <div>
+        <button id="live_play" type="button" class="btn btn-lg" onclick="start_live_play()">Live Play</button>
+        <button id="record" type="button" class="btn btn-lg" onclick="start_record()">Record</button>
+        <button id="jukebox" type="button" class="btn btn-lg" onclick="start_jukebox()">Jukebox</button>
+    </div>
+    <div>
+        {% if songs %}
+        <ul>
+        {% for song in songs %}
+            <li><a href="#">{{ song }}</a></li>
+        {% endfor %}
+        {% endif %}
+    </div>
+        
 </div>
 
 <!-- Button trigger modal 
@@ -115,11 +149,12 @@
       </div>
       <div class="modal-body">
         <label for="song_name">Song name</label>
-        <input type="text" class="form-control" id="song_name" placeholder="Unnamed song">
+        <input type="text" class="form-control" id="song_name" placeholder="Unnamed song" />
+        <input type="text" class="form-control" id="temp_name" />
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-danger" data-dismiss="modal">Close and discard</button>
-        <button type="button" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-primary" onclick="rename_song()">Save</button>
       </div>
     </div>
   </div>
