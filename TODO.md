@@ -18,4 +18,12 @@
     * Also look into `$('#alerty').alert()`; see [Bootstrap docs on alerts](https://getbootstrap.com/docs/4.0/components/alerts/)
 * Strip `.mid` suffix from song names when displaying on main page
 * Add panic button that shuts off all notes and sends control messages to reset everything
+* Fix scrunched look
 
+## Backend
+* Systemd unit files for daemons
+* Password changes on production Pis
+* Port knocking for SSH?
+
+## Nice to have
+* Autodiscovery of hostnames (Avahi)
