@@ -11,6 +11,8 @@
 * Make song links on index page start playing that song when clicked
 
 ## UI
+* Clear modal dialog fields after use
+* -Make `temp_name` field hidden-
 * Add unattended-mode page that is jukebox only
 * Move docent page to a different URL
 * Make alert div actually show and automatically dismiss
@@ -27,3 +29,4 @@
 
 ## Nice to have
 * Autodiscovery of hostnames (Avahi)
+* Nice offset background image of John Hollis' art

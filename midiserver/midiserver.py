@@ -5,6 +5,7 @@ import mido
 from mido import Message, MidiFile, MidiTrack
 import os
 from os.path import abspath, basename, dirname
+import signal
 import socket
 import sys
 from tempfile import mkstemp
@@ -14,6 +15,7 @@ import re
 
 sys.path.append(dirname(dirname(abspath(__file__))))
 from config import *
+from safety import slugify
 
 current_milli_time = lambda: int(round(time.time() * 1000))
 
@@ -43,30 +45,47 @@ class MIDIServer:
         return mido.open_input(client_name)
 
     def handle_command_channel(self):
+        inputs = []
+        outputs = []
         try:
             self.cmd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.cmd.bind(('0.0.0.0', CMD_PORT))
             self.cmd.listen(1)
+            inputs.append(self.cmd)
             while True:
-                conn,cli_addr = self.cmd.accept()
-                logging.info('Command channel connection from %s', cli_addr)
+                readable, writable, exceptional = select.select(inputs, outputs, inputs)
+                for s in readable:
+                    if s == self.cmd:
+                        conn,cli_addr = self.cmd.accept()
+                        logging.info('Command channel connection from %s', cli_addr)
+                        conn.setblocking(0)
+                        inputs.append(conn)
                 while True:
                     data = conn.recv(4096)
                     if data:
                         reply = 'ERR\n'
-                        command = data.strip()
+                        data = data.strip()
+                        command = data.split(':')[0]
+                        args = data.split(':')[1:]
                         logging.debug('Command received: %s' % command)
-                        if command == 'mode':
+                        if command == MODE:
                             reply = 'OK:%s\n' % self.mode
-                        elif command == 'record':
+                        elif command == RECORD:
                             self.output_file,self.output_filename = mkstemp(suffix='.mid', prefix='recording', dir=RECORDING_DIR)
                             self.mode = RECORD
                             self.recording_thread = Thread(target=self.handle_recording, name='Recording', args=())
                             self.recording_thread.start()
                             reply = 'OK:%s\n' % basename(self.output_filename)
-                        elif command == 'live_play':
+                        elif command == LIVE_PLAY:
                             self.mode = LIVE_PLAY
-                            reply = 'OK:%s\n' % basename(self.output_filename)
+                            self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
+                            self.live_play_thread.start()
+                            reply = 'OK\n'
+                        elif command == SINGLE_PLAY:
+                            self.mode = SINGLE_PLAY
+                            self.single_play_thread = Thread(target=self.handle_single_play, name='Single Play', args=args)
+                            self.single_play_thread.start()
+                            reply = 'OK\n'
                         else:
                             logging.debug('Unknown command %s' % command)
                         logging.debug('Sending reply: %s' % reply.strip())
@@ -91,20 +110,56 @@ class MIDIServer:
                 logging.info('Sleeping 3 seconds and trying again.')
                 time.sleep(3)
 
-    def handle_midi_loop(self):
+    def handle_live_play(self):
+        logging.info('Starting live play thread')
+        logging.info('Getting a handle to the sequencer...')
         self.midi_input = self.get_midi_sequencer()
+        logging.info('Got sequencer.')
         while True:
+            logging.info('Connecting to the Sky Pi...')
             self.connect_to_sky_pi()
+            logging.info('Connected.')
             try:
                 while True:
-                    event = self.midi_input.receive()
-                    logging.debug(repr(event))
-                    self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
+                    for event in self.midi_input.iter_pending():
+                        logging.debug(repr(event))
+                        self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
+                    if self.mode != LIVE_PLAY:
+                        logging.info('Mode changed to %s, leaving live play thread' % self.mode)
+                        if self.skypi:
+                            self.skypi.close()
+                        return None
             except socket.error:
                 break
             finally:
                 self.skypi.close()
             logging.warn('Lost connection to Sky Pi, reconnecting...')
+
+    def handle_single_play(self, song_name):
+        logging.info('Starting single play thread for song name %s' % song_name)
+        logging.info('Connecting to the sky pi...')
+        self.connect_to_sky_pi()
+        logging.info('Connected.')
+        song_name = slugify(song_name)
+        if not song_name.endswith('.mid'):
+            song_name = song_name + '.mid'
+        filename = os.path.join(JUKEBOX_DIR, song_name)
+        if not os.path.isfile(filename):
+            logging.info('File %s does not exist, leaving single play thread' % filename)
+            return None
+        try:
+            for event in MidiFile(filename):
+                time.sleep(event.time)
+                logging.debug(repr(event))
+                if not event.is_meta:
+                    self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
+                if self.mode != SINGLE_PLAY:
+                    logging.info('Mode changed to %s, leaving single play thread' % self.mode)
+                    return None
+        except socket.error:
+            return None
+        finally:
+            self.skypi.close()
 
     def handle_recording(self):
         logging.info('Starting recording thread')
@@ -127,7 +182,7 @@ class MIDIServer:
                 logging.info('Appending event to track: %s' % event)
             if self.mode != RECORD:
                 break
-            time.sleep(0.001)
+            time.sleep(0.005)
         logging.info('Saving to output_file %s (filename %s)' % (repr(self.output_file), self.output_filename))
         mid.save(self.output_file)
         self.midi_recording.close()
@@ -138,9 +193,9 @@ class MIDIServer:
             os.mkdir(RECORDING_DIR)
         self.command_thread = Thread(target=self.handle_command_channel, name='Command', args=())
         self.command_thread.start()
-        self.midi_thread = Thread(target=self.handle_midi_loop, name='MIDI', args=())
-        self.midi_thread.start()
-        self.midi_thread.join()
+        self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
+        self.live_play_thread.start()
+        self.live_play_thread.join()
         self.command_thread.join()
 
 

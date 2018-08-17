@@ -2,14 +2,10 @@ from flask import render_template, jsonify, request
 from app import app
 from midiserver.command import command
 from config import *
+from safety import *
 import glob
 import os
 import string
-
-VALID_CHARS = frozenset("-_.() %s%s" % (string.ascii_letters, string.digits))
-
-def slugify(s):
-    return ''.join(c for c in s if c in VALID_CHARS)
 
 @app.route('/')
 @app.route('/index')
@@ -50,6 +46,7 @@ def current_mode():
 
 @app.route('/rename', methods=['POST'])
 def rename():
+    # Really should just handle sanitization in one place
     old_name = slugify(request.form['old'])
     new_name = slugify(request.form['new'])
     if old_name is None or old_name == '' or new_name is None or new_name == '':
@@ -60,4 +57,14 @@ def rename():
         os.rename(os.path.join(RECORDING_DIR, old_name), os.path.join(JUKEBOX_DIR, new_name))
     except OSError as e:
         return jsonify({'reason': str(e)}), 500
-    return jsonify({'filename': new_name})
+    return jsonify({'status': True, 'filename': new_name})
+
+@app.route('/single_play', methods=['POST'])
+def single_play():
+    song_name = slugify(request.form['song_name'])
+    if song_name is None or song_name == '':
+        return jsonify({'reason': 'Recording name invalid!'}), 500
+    if not song_name.endswith('.mid'):
+        song_name = song_name + '.mid'
+    success, result = command(SINGLE_PLAY, song_name)
+    return jsonify({'status': success, 'result': result})
