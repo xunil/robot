@@ -21,7 +21,7 @@ if not client_found:
     print >>sys.stderr, 'Could not find client named %s' % selected_client
     sys.exit(1)
 
-with PortServer(23840) as server:
+with mido.sockets.PortServer('0.0.0.0', 23840) as server:
     with mido.open_output(selected_client) as midi_out:
         while True:
             connection = server.accept()
