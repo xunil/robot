@@ -53,7 +53,7 @@ class MIDIServer:
             self.cmd.listen(1)
             inputs.append(self.cmd)
             while True:
-                readable, _, exceptional = select.select(inputs, [], inputs, 0.1)
+                readable, _, exceptional = select.select(inputs, [], inputs, 1.0)
                 for s in readable:
                     if s is self.cmd:
                         conn,cli_addr = self.cmd.accept()
@@ -137,11 +137,12 @@ class MIDIServer:
                     for event in self.midi_input.iter_pending():
                         logging.debug(repr(event))
                         self.skypi.send(event)
-                    if self.mode != LIVE_PLAY:
+                    if self.mode not in (LIVE_PLAY,RECORD):
                         logging.info('Mode changed to %s, leaving live play thread' % self.mode)
                         if self.skypi:
                             self.skypi.close()
                         return None
+                    time.sleep(0.001)
             except socket.error:
                 break
             logging.warn('Lost connection to Sky Pi, reconnecting...')
@@ -215,7 +216,7 @@ class MIDIServer:
                 logging.info('Appending event to track: %s' % event)
             if self.mode != RECORD:
                 break
-            time.sleep(0.005)
+            time.sleep(0.001)
         logging.info('Saving to output_file %s (filename %s)' % (repr(self.output_file), self.output_filename))
         mid.save(self.output_file)
         self.midi_recording.close()
