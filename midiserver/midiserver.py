@@ -1,5 +1,4 @@
 #!/usr/bin/env
-import cPickle as pickle
 import glob
 import logging
 import mido
@@ -116,8 +115,7 @@ class MIDIServer:
     def connect_to_sky_pi(self):
         while True:
             try:
-                self.skypi = sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect((SKY_PI_ADDR, SKY_PI_PORT))
+                self.skypi = mido.sockets.connect(SKY_PI_ADDR, SKY_PI_PORT)
                 logging.info('Connected to Sky Pi')
                 break
             except socket.error as e:
@@ -138,7 +136,7 @@ class MIDIServer:
                 while True:
                     for event in self.midi_input.iter_pending():
                         logging.debug(repr(event))
-                        self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
+                        self.skypi.send(event)
                     if self.mode != LIVE_PLAY:
                         logging.info('Mode changed to %s, leaving live play thread' % self.mode)
                         if self.skypi:
@@ -146,8 +144,6 @@ class MIDIServer:
                         return None
             except socket.error:
                 break
-            finally:
-                self.skypi.close()
             logging.warn('Lost connection to Sky Pi, reconnecting...')
 
     def handle_single_play(self, song_name):
@@ -167,14 +163,12 @@ class MIDIServer:
                 time.sleep(event.time)
                 logging.debug(repr(event))
                 if not event.is_meta:
-                    self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
+                    self.skypi.send(event)
                 if self.mode != SINGLE_PLAY:
                     logging.info('Mode changed to %s, leaving single play thread' % self.mode)
                     return None
         except socket.error:
             return None
-        finally:
-            self.skypi.close()
 
     def handle_jukebox(self):
         logging.info('Starting jukebox thread')
@@ -191,7 +185,7 @@ class MIDIServer:
                         time.sleep(event.time)
                         logging.debug(repr(event))
                         if not event.is_meta:
-                            self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
+                            self.skypi.send(event)
                         if self.mode != JUKEBOX:
                             logging.info('Mode changed to %s, leaving jukebox thread' % self.mode)
                             return None
@@ -199,8 +193,6 @@ class MIDIServer:
                     time.sleep(3)
         except socket.error:
             return None
-        finally:
-            self.skypi.close()
 
     def handle_recording(self):
         logging.info('Starting recording thread')

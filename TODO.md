@@ -17,6 +17,7 @@
 * Make song links on index page start playing that song when clicked
 
 ## UI
+* Refresh song list after Stop Recording button pressed
 * Clear modal dialog fields after use
 * -Make `temp_name` field hidden-
 * Add unattended-mode page that is single-play only
@@ -36,3 +37,4 @@
 ## Nice to have
 * Autodiscovery of hostnames (Avahi)
 * Nice offset background image of John Hollis' art
+* "Next" button in Jukebox mode
