@@ -1,3 +1,9 @@
+# R.O.B.O.T.
+![Credit: John Hollis](app/static/colored_robot.jpg)
+
+# TODOs
+See [TODO](TODO.md).
+
 # Setting up
 
 ## Install prerequisite packages
