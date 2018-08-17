@@ -5,6 +5,7 @@ import mido
 from mido import Message, MidiFile, MidiTrack
 import os
 from os.path import abspath, basename, dirname
+import select
 import signal
 import socket
 import sys
@@ -46,57 +47,65 @@ class MIDIServer:
 
     def handle_command_channel(self):
         inputs = []
-        outputs = []
         try:
             self.cmd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.cmd.bind(('0.0.0.0', CMD_PORT))
             self.cmd.listen(1)
             inputs.append(self.cmd)
             while True:
-                readable, writable, exceptional = select.select(inputs, outputs, inputs)
+                readable, _, exceptional = select.select(inputs, [], inputs, 0.1)
                 for s in readable:
-                    if s == self.cmd:
+                    if s is self.cmd:
                         conn,cli_addr = self.cmd.accept()
                         logging.info('Command channel connection from %s', cli_addr)
                         conn.setblocking(0)
                         inputs.append(conn)
-                while True:
-                    data = conn.recv(4096)
-                    if data:
-                        reply = 'ERR\n'
-                        data = data.strip()
-                        command = data.split(':')[0]
-                        args = data.split(':')[1:]
-                        logging.debug('Command received: %s' % command)
-                        if command == MODE:
-                            reply = 'OK:%s\n' % self.mode
-                        elif command == RECORD:
-                            self.output_file,self.output_filename = mkstemp(suffix='.mid', prefix='recording', dir=RECORDING_DIR)
-                            self.mode = RECORD
-                            self.recording_thread = Thread(target=self.handle_recording, name='Recording', args=())
-                            self.recording_thread.start()
-                            reply = 'OK:%s\n' % basename(self.output_filename)
-                        elif command == LIVE_PLAY:
-                            self.mode = LIVE_PLAY
-                            self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
-                            self.live_play_thread.start()
-                            reply = 'OK\n'
-                        elif command == SINGLE_PLAY:
-                            self.mode = SINGLE_PLAY
-                            self.single_play_thread = Thread(target=self.handle_single_play, name='Single Play', args=args)
-                            self.single_play_thread.start()
-                            reply = 'OK\n'
-                        else:
-                            logging.debug('Unknown command %s' % command)
-                        logging.debug('Sending reply: %s' % reply.strip())
-                        conn.sendall(reply)
                     else:
-                        logging.debug('Closing command channel connection from %s', cli_addr)
-                        conn.close()
-                        break
+                        data = s.recv(4096)
+                        if data:
+                            reply = 'ERR\n'
+                            data = data.strip()
+                            command = data.split(':')[0]
+                            args = data.split(':')[1:]
+                            logging.debug('Command received: %s' % command)
+                            if command == MODE:
+                                reply = 'OK:%s\n' % self.mode
+                            elif command == RECORD:
+                                self.output_file,self.output_filename = mkstemp(suffix='.mid', prefix='recording', dir=RECORDING_DIR)
+                                self.mode = RECORD
+                                self.recording_thread = Thread(target=self.handle_recording, name='Recording', args=())
+                                self.recording_thread.start()
+                                reply = 'OK:%s\n' % basename(self.output_filename)
+                            elif command == LIVE_PLAY:
+                                self.mode = LIVE_PLAY
+                                self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
+                                self.live_play_thread.start()
+                                reply = 'OK\n'
+                            elif command == SINGLE_PLAY:
+                                self.mode = SINGLE_PLAY
+                                self.single_play_thread = Thread(target=self.handle_single_play, name='Single Play', args=args)
+                                self.single_play_thread.start()
+                                reply = 'OK\n'
+                            else:
+                                logging.debug('Unknown command %s' % command)
+                            logging.debug('Sending reply: %s' % reply.strip())
+                            s.sendall(reply)
+                        else:
+                            logging.debug('Closing command channel connection from %s', s.getpeername())
+                            inputs.remove(s)
+                            s.close()
+                for s in exceptional:
+                    logging.debug('Exceptional condition on connection from %s', s.getpeername())
+                    inputs.remove(s)
+                    s.close()
+                if self.mode == SINGLE_PLAY and not self.single_play_thread.is_alive():
+                    # I know, I know, don't repeat yourself...
+                    self.mode = LIVE_PLAY
+                    self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
+                    self.live_play_thread.start()
         finally:
-            if conn:
-                conn.close()
+            for s in inputs:
+                s.close()
 
     def connect_to_sky_pi(self):
         while True:
