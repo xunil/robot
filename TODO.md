@@ -1,5 +1,9 @@
 # TODO
 
+## Sky Pi
+* Fix missing note-off events, pickling failures when data comes too quick
+    * Use mido's PortServer
+
 ## MIDI Server
 * See if logging module can automatically rotate at size threshold
 * Add command to play specified songs
@@ -7,6 +11,7 @@
 * Limit note octaves to -1..1
 * Ignore control change events from volume slider, other buttons
     * Pass pitch/modulation control messages through
+* Add jukebox mode
 
 ## Jukebox
 * Make song links on index page start playing that song when clicked
@@ -14,7 +19,7 @@
 ## UI
 * Clear modal dialog fields after use
 * -Make `temp_name` field hidden-
-* Add unattended-mode page that is jukebox only
+* Add unattended-mode page that is single-play only
 * Move docent page to a different URL
 * Make alert div actually show and automatically dismiss
     * Might need to use `setTimeout()`
