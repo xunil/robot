@@ -47,6 +47,7 @@ class MIDIServer:
 
     def handle_command_channel(self):
         inputs = []
+        self.output_filename = None
         try:
             self.cmd = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.cmd.bind(('0.0.0.0', CMD_PORT))
@@ -80,7 +81,8 @@ class MIDIServer:
                                 self.mode = LIVE_PLAY
                                 self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
                                 self.live_play_thread.start()
-                                reply = 'OK\n'
+                                reply = 'OK:%s\n' % basename(self.output_filename)
+                                self.output_filename = None
                             elif command == SINGLE_PLAY:
                                 self.mode = SINGLE_PLAY
                                 self.single_play_thread = Thread(target=self.handle_single_play, name='Single Play', args=args)

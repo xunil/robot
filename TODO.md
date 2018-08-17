@@ -1,20 +1,19 @@
 # TODO
 
 ## Sky Pi
-* Fix missing note-off events, pickling failures when data comes too quick
-    * Use mido's PortServer
+* -Fix missing note-off events, pickling failures when data comes too quick-
+    * -Use mido's PortServer-
 
 ## MIDI Server
 * See if logging module can automatically rotate at size threshold
-* Add command to play specified songs
-* Add command to start playing all songs in `JUKEBOX_DIR` in random order
+* -Add command to play specified songs-
+* -Add command to start playing all songs in `JUKEBOX_DIR` in random order-
 * Limit note octaves to -1..1
 * Ignore control change events from volume slider, other buttons
     * Pass pitch/modulation control messages through
-* Add jukebox mode
 
 ## Jukebox
-* Make song links on index page start playing that song when clicked
+* -Make song links on index page start playing that song when clicked-
 
 ## UI
 * Refresh song list after Stop Recording button pressed
@@ -27,7 +26,7 @@
     * Also look into `$('#alerty').alert()`; see [Bootstrap docs on alerts](https://getbootstrap.com/docs/4.0/components/alerts/)
 * Strip `.mid` suffix from song names when displaying on main page
 * Add panic button that shuts off all notes and sends control messages to reset everything
-* Fix scrunched look
+* -Fix scrunched look-
 
 ## Backend
 * Systemd unit files for daemons

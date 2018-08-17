@@ -9,9 +9,11 @@ def command(cmd, *args):
     try:
         cmdsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         cmdsock.connect(('127.0.0.1', CMD_PORT))
+        print >>sys.stderr, '-- COMMAND -- Sending command %s' % (':'.join([cmd] + list(args)))
         cmdsock.sendall('%s\n' % (':'.join([cmd] + list(args))))
         reply = cmdsock.recv(4096)
         reply = reply.strip()
+        print >>sys.stderr, '-- COMMAND -- Received reply %s' % reply
     except socket.error as e:
         return (False, list(str(e)))
     finally:
