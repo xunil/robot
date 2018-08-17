@@ -1,10 +1,12 @@
 #!/usr/bin/env
 import cPickle as pickle
+import glob
 import logging
 import mido
 from mido import Message, MidiFile, MidiTrack
 import os
 from os.path import abspath, basename, dirname
+import random
 import select
 import signal
 import socket
@@ -12,7 +14,6 @@ import sys
 from tempfile import mkstemp
 from threading import Thread
 import time
-import re
 
 sys.path.append(dirname(dirname(abspath(__file__))))
 from config import *
@@ -85,6 +86,11 @@ class MIDIServer:
                                 self.mode = SINGLE_PLAY
                                 self.single_play_thread = Thread(target=self.handle_single_play, name='Single Play', args=args)
                                 self.single_play_thread.start()
+                                reply = 'OK\n'
+                            elif command == JUKEBOX:
+                                self.mode = JUKEBOX
+                                self.jukebox_thread = Thread(target=self.handle_jukebox, name='Jukebox', args=())
+                                self.jukebox_thread.start()
                                 reply = 'OK\n'
                             else:
                                 logging.debug('Unknown command %s' % command)
@@ -165,6 +171,32 @@ class MIDIServer:
                 if self.mode != SINGLE_PLAY:
                     logging.info('Mode changed to %s, leaving single play thread' % self.mode)
                     return None
+        except socket.error:
+            return None
+        finally:
+            self.skypi.close()
+
+    def handle_jukebox(self):
+        logging.info('Starting jukebox thread')
+        logging.info('Connecting to the sky pi...')
+        self.connect_to_sky_pi()
+        logging.info('Connected.')
+        songs = glob.glob(os.path.join(JUKEBOX_DIR, '*.mid'))
+        random.shuffle(songs)
+        try:
+            while True:
+                for filename in songs:
+                    logging.debug('Playing %s' % os.path.basename(filename))
+                    for event in MidiFile(filename):
+                        time.sleep(event.time)
+                        logging.debug(repr(event))
+                        if not event.is_meta:
+                            self.skypi.sendall(pickle.dumps(event, pickle.HIGHEST_PROTOCOL))
+                        if self.mode != JUKEBOX:
+                            logging.info('Mode changed to %s, leaving jukebox thread' % self.mode)
+                            return None
+                    logging.debug('Sleeping between songs...')
+                    time.sleep(3)
         except socket.error:
             return None
         finally:
