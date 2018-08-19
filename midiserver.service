@@ -1,0 +1,13 @@
+[Unit]
+Description=midiserver
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/robot
+ExecStart=/home/pi/venv/bin/python /home/pi/robot/midiserver/midiserver.py
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
