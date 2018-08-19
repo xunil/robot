@@ -31,7 +31,7 @@
 * Add panic button that shuts off all notes and sends control messages to reset everything
     * Command now exists, but it causes problems - the Sky Pi process dies because it claims the port is closed.
 * ~~Fix scrunched look~~
-* Download jQuery, Bootstrap and make sure app uses local copies instead of CDN
+* ~~Download jQuery, Bootstrap and make sure app uses local copies instead of CDN~~
 
 ## Backend
 * Systemd unit files for daemons
