@@ -40,6 +40,55 @@
         $('#' + btnName).attr('role', 'button');
         $('#' + btnName).attr('aria-pressed', 'true');
     }
+
+    function refresh_song_list() {
+        // Refresh the song list
+        $.post('/songs', {}).done(function(response) {
+            console.log('Success in refresh_song_list: response["songs"] = ' + JSON.stringify(response['songs']));
+            $('#song_list ul').empty();
+            response['songs'].forEach(function(song) {
+                console.log('song=' + JSON.stringify(song));
+                var song_name = song['name']; 
+                if (song_name.endsWith('.mid')) {
+                    song_name = song_name.replace('.mid', '');
+                }
+                console.log('song_name=' + JSON.stringify(song_name));
+                $('#song_list ul').append('<li class="list-group-item"><a href="#" class="songlink">' + song_name + '</a></li>');
+            });
+            $('a.songlink').click(function() { single_play(this.text); });
+        }).fail(function(response) {
+            $('#alerty').text('Failed to refresh song list: ' + response['reason']);
+            $('#alerty').toggleClass('hidden alert-danger alert-primary');
+            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
+        });
+    }
+
+    function get_current_mode() {
+        $.get('/mode').done(function(response) {
+            activate_button(response['mode']);
+        }).fail(function() {
+            $('#derp').text('Failed');
+        });
+    }
+
+    function rename_song() {
+        $.post('/rename', {"old": $('#temp_name').val(), "new": $('#song_name').val()}).done(function(response) {
+            $('#songNameModal').modal('hide');
+            $('#alerty').text('Saved file as ' + response['filename'])
+            $('#alerty').toggleClass('hidden alert-danger alert-primary');
+            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
+        }).fail(function(response) {
+            $('#songNameModal').modal('hide');
+            $('#alerty').text('Failed to save file: ' + response['reason']);
+            $('#alerty').toggleClass('hidden alert-danger alert-primary');
+            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
+        });
+        // Clear values from last recording
+        $('#temp_name').val("");
+        $('#song_name').val("");
+        refresh_song_list();
+    }
+
     function start_record() {
         $.post('/start_record', {}).done(function(response) {
             activate_button('record');
@@ -47,6 +96,7 @@
             $('#derp').text('Failed');
         });
     }
+
     // TODO: Detect that recording is in progress and call this function
     // if another button (Jukebox, Live Play) is clicked instead of the
     // Stop Recording button.
@@ -63,6 +113,7 @@
             $('#derp').text('Failed');
         });
     }
+
     function start_jukebox() {
         $.post('/jukebox', {}).done(function(response) {
             activate_button('jukebox');
@@ -70,6 +121,7 @@
             $('#derp').text('Failed');
         });
     }
+
     function start_live_play() {
         $.post('/live_play', {}).done(function(response) {
             activate_button('live_play');
@@ -77,31 +129,7 @@
             $('#derp').text('Failed');
         });
     }
-    function get_current_mode() {
-        $.get('/mode').done(function(response) {
-            activate_button(response['mode']);
-        }).fail(function() {
-            $('#derp').text('Failed');
-        });
-    }
-    function rename_song() {
-        $.post('/rename', {"old": $('#temp_name').val(), "new": $('#song_name').val()}).done(function(response) {
-            $('#songNameModal').modal('hide');
-            $('#alerty').text('Saved file as ' + response['filename'])
-                .addClass('alert-success')
-                .show()
-                .delay(3000)
-                .hide(250)
-                .removeClass('alert-success');
-        }).fail(function(response) {
-            $('#alerty').text('Failed to save file: ' + response['reason']);
-            $('#alerty').addClass('alert-danger')
-                .show()
-                .delay(3000)
-                .hide(250)
-                .removeClass('alert-danger');
-        });
-    }
+
     function single_play(song_name) {
         console.log(JSON.stringify(song_name));
         $.post('/single_play', {"song_name": song_name}).done(function(response) {
@@ -110,13 +138,22 @@
             console.log(JSON.stringify(response));
             $('#alerty').text('Failed to play song: ' + response['reason']);
             $('#alerty').toggleClass('hidden alert-danger alert-primary');
-            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 3000);
+            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
         });
     }
 
-    get_current_mode();
+    function start_reset() {
+        $.post('/reset', {}).done(function(response) {
+            start_live_play();
+        }).fail(function() {
+            $('#derp').text('Failed');
+        });
+    }
 
-    $('a.songlink').click(function() { single_play(this.text); });
+    // Page load code
+    get_current_mode();
+    refresh_song_list();
+
     </script>
 {% endblock %}
 
@@ -139,6 +176,9 @@
         <button id="live_play" type="button" class="btn btn-lg" onclick="start_live_play()">Live Play</button>
         <button id="record" type="button" class="btn btn-lg" onclick="start_record()">Record</button>
         <button id="jukebox" type="button" class="btn btn-lg" onclick="start_jukebox()">Jukebox</button>
+        <!-- Causing problems, deleting for now
+        <button id="reset" type="button" class="btn btn-lg btn-danger" onclick="start_reset()">Reset</button>
+        --> 
     </div>
 </div>
 
@@ -151,15 +191,9 @@
 
 <div class="row">
 <div class="col-sm-6">
-    <div>
-        {% if songs %}
+    <div id="song_list">
         <ul class="list-group">
-        {% for song in songs %}
-            <li class="list-group-item"><a href="#" class="songlink">{{ song }}</a></li>
-        {% endfor %}
-        {% endif %}
     </div>
-        
 </div>
 </div>
 

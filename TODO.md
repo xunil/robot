@@ -14,24 +14,28 @@
     * Pass pitch/modulation control messages through
 
 ## Jukebox
-* -Make song links on index page start playing that song when clicked-
+* ~~Make song links on index page start playing that song when clicked~~
 
 ## UI
-* Refresh song list after Stop Recording button pressed
-* Clear modal dialog fields after use
+* ~~Refresh song list after Stop Recording button pressed~~
+* ~~Clear modal dialog fields after use~~
 * ~~Make `temp_name` field hidden~~
 * Add unattended-mode page that is single-play only
 * Move docent page to a different URL
 * Make alert div actually show and automatically dismiss
     * Might need to use `setTimeout()`
     * Also look into `$('#alerty').alert()`; see [Bootstrap docs on alerts](https://getbootstrap.com/docs/4.0/components/alerts/)
-* Strip `.mid` suffix from song names when displaying on main page
+    * Fix it so it comes up with the right color at the right time
+    * Probably easiest to refactor to a method
+* ~~Strip `.mid` suffix from song names when displaying on main page~~
 * Add panic button that shuts off all notes and sends control messages to reset everything
+    * Command now exists, but it causes problems - the Sky Pi process dies because it claims the port is closed.
 * ~~Fix scrunched look~~
 * Download jQuery, Bootstrap and make sure app uses local copies instead of CDN
 
 ## Backend
 * Systemd unit files for daemons
+    * Just need to check these in.
 * Password changes on production Pis
 * Port knocking for SSH?
 

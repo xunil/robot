@@ -7,10 +7,24 @@ import glob
 import os
 import string
 
+def get_songs():
+    songs = []
+    for f in glob.glob(os.path.join(JUKEBOX_DIR, '*.mid')):
+        try:
+            song_stat = os.stat(f)
+        except OSError:
+            continue
+        songs.append({'name': os.path.basename(f), 'mtime': os.stat(f).st_mtime})
+    return songs
+
+@app.route('/songs', methods=['POST'])
+def songs():
+    return jsonify({'songs': get_songs()})
+
 @app.route('/')
 @app.route('/index')
 def index():
-    songs = [os.path.basename(f) for f in glob.glob(os.path.join(JUKEBOX_DIR, '*.mid'))]
+    songs = get_songs()
     return render_template('index.html', title='Home', songs=songs)
 
 @app.route('/live_play', methods=['POST'])
@@ -35,6 +49,11 @@ def stop_record():
 @app.route('/jukebox', methods=['POST'])
 def jukebox():
     success, result = command(JUKEBOX)
+    return jsonify({'status': success})
+
+@app.route('/reset', methods=['POST'])
+def reset():
+    success, result = command(RESET)
     return jsonify({'status': success})
 
 @app.route('/mode', methods=['GET'])

@@ -81,7 +81,10 @@ class MIDIServer:
                                 self.mode = LIVE_PLAY
                                 self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
                                 self.live_play_thread.start()
-                                reply = 'OK:%s\n' % basename(self.output_filename)
+                                if self.output_filename is not None:
+                                    reply = 'OK:%s\n' % basename(self.output_filename)
+                                else:
+                                    reply = 'OK\n'
                                 self.output_filename = None
                             elif command == SINGLE_PLAY:
                                 self.mode = SINGLE_PLAY
@@ -92,6 +95,11 @@ class MIDIServer:
                                 self.mode = JUKEBOX
                                 self.jukebox_thread = Thread(target=self.handle_jukebox, name='Jukebox', args=())
                                 self.jukebox_thread.start()
+                                reply = 'OK\n'
+                            elif command == RESET:
+                                self.mode = RESET
+                                self.reset_thread = Thread(target=self.handle_reset, name='Reset', args=())
+                                self.reset_thread.start()
                                 reply = 'OK\n'
                             else:
                                 logging.debug('Unknown command %s' % command)
@@ -105,7 +113,7 @@ class MIDIServer:
                     logging.debug('Exceptional condition on connection from %s', s.getpeername())
                     inputs.remove(s)
                     s.close()
-                if self.mode == SINGLE_PLAY and not self.single_play_thread.is_alive():
+                if (self.mode == SINGLE_PLAY and not self.single_play_thread.is_alive()) or (self.mode == RESET and not self.reset_thread.is_alive()):
                     # I know, I know, don't repeat yourself...
                     self.mode = LIVE_PLAY
                     self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
@@ -119,11 +127,22 @@ class MIDIServer:
             try:
                 self.skypi = mido.sockets.connect(SKY_PI_ADDR, SKY_PI_PORT)
                 logging.info('Connected to Sky Pi')
+                self.skypi.reset()
                 break
             except socket.error as e:
                 logging.info('Failed to connect to Sky Pi: %s' % e)
                 logging.info('Sleeping 3 seconds and trying again.')
                 time.sleep(3)
+
+    def handle_reset(self):
+        logging.info('Starting reset thread')
+        logging.info('Connecting to the sky pi...')
+        self.connect_to_sky_pi()
+        logging.info('Connected.')
+        try:
+            self.skypi.reset()
+        except socket.error:
+            return None
 
     def handle_live_play(self):
         logging.info('Starting live play thread')

@@ -10,6 +10,7 @@ JUKEBOX = 'jukebox'
 RECORD = 'record'
 MODE = 'mode'
 SINGLE_PLAY = 'single_play'
+RESET = 'reset'
 
 
 RECORDING_DIR = '/home/pi/recordings'
