@@ -45,6 +45,21 @@ class MIDIServer:
             sys.exit(1)
         return mido.open_input(client_name)
 
+    def filter_midi_event(self, event):
+        out_event = event
+        if event.type in (NOTE_ON, NOTE_OFF):
+          octave = event.note / 12
+          if octave < MIN_OCTAVE:
+            out_event.note = (event.note % 12) + (MIN_OCTAVE * 12)
+          elif octave > MAX_OCTAVE:
+            out_event.note = (event.note % 12) + (MAX_OCTAVE * 12)
+        elif event.type == CONTROL_CHANGE:
+            if event.control != MODULATION_WHEEL:
+                return None
+        elif event.type == PROGRAM_CHANGE:
+            return None
+        return out_event
+
     def handle_command_channel(self):
         inputs = []
         self.output_filename = None
@@ -128,6 +143,9 @@ class MIDIServer:
                 self.skypi = mido.sockets.connect(SKY_PI_ADDR, SKY_PI_PORT)
                 logging.info('Connected to Sky Pi')
                 self.skypi.reset()
+                if SET_DEFAULT_PROGRAM_ON_CONNECT:
+                    default_program_event = mido.Message('program_change', channel=1, program=DEFAULT_PROGRAM, time=0)
+                    self.skypi.send(default_program_event)
                 break
             except socket.error as e:
                 logging.info('Failed to connect to Sky Pi: %s' % e)
@@ -156,8 +174,11 @@ class MIDIServer:
             try:
                 while True:
                     for event in self.midi_input.iter_pending():
-                        logging.debug(repr(event))
-                        self.skypi.send(event)
+                        out_event = self.filter_midi_event(event)
+                        if out_event is None:
+                            continue
+                        logging.debug(repr(out_event))
+                        self.skypi.send(out_event)
                     if self.mode not in (LIVE_PLAY,RECORD):
                         logging.info('Mode changed to %s, leaving live play thread' % self.mode)
                         if self.skypi:
@@ -183,9 +204,12 @@ class MIDIServer:
         try:
             for event in MidiFile(filename):
                 time.sleep(event.time)
-                logging.debug(repr(event))
                 if not event.is_meta:
-                    self.skypi.send(event)
+                    out_event = self.filter_midi_event(event)
+                    if out_event is None:
+                        continue
+                    logging.debug(repr(out_event))
+                    self.skypi.send(out_event)
                 if self.mode != SINGLE_PLAY:
                     logging.info('Mode changed to %s, leaving single play thread' % self.mode)
                     return None
@@ -205,9 +229,12 @@ class MIDIServer:
                     logging.debug('Playing %s' % os.path.basename(filename))
                     for event in MidiFile(filename):
                         time.sleep(event.time)
-                        logging.debug(repr(event))
                         if not event.is_meta:
-                            self.skypi.send(event)
+                            out_event = self.filter_midi_event(event)
+                            if out_event is None:
+                                continue
+                            logging.debug(repr(out_event))
+                            self.skypi.send(out_event)
                         if self.mode != JUKEBOX:
                             logging.info('Mode changed to %s, leaving jukebox thread' % self.mode)
                             return None
@@ -250,8 +277,9 @@ class MIDIServer:
         self.command_thread.start()
         self.live_play_thread = Thread(target=self.handle_live_play, name='Live Play', args=())
         self.live_play_thread.start()
-        self.live_play_thread.join()
-        self.command_thread.join()
+        # self.live_play_thread.join()
+        # self.command_thread.join()
+        signal.pause()
 
 
 if __name__ == '__main__':
