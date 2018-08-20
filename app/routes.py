@@ -6,6 +6,7 @@ from safety import *
 import glob
 import os
 import string
+import subprocess
 
 def get_songs():
     songs = []
@@ -55,6 +56,24 @@ def jukebox():
 def reset():
     success, result = command(RESET)
     return jsonify({'status': success})
+
+@app.route('/panic', methods=['POST'])
+def panic():
+    cmd = ['/usr/bin/sudo', '/bin/systemctl', 'restart', 'midiserver.service']
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return jsonify({'stdout': out, 'stderr': err})
+
+@app.route('/lightsout', methods=['POST'])
+def lightsout():
+    cmd = ['/usr/bin/sudo', '/sbin/shutdown', '-r', 'now']
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return jsonify({'stdout': out, 'stderr': err})
 
 @app.route('/mode', methods=['GET'])
 def current_mode():

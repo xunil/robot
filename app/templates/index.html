@@ -12,149 +12,7 @@
 
 {% block scripts %}
     {{ super() }}
-    <script>
-    function activate_button(btnName) {
-        var buttons = ['live_play', 'jukebox', 'record'];
-        var idx = buttons.indexOf(btnName);
-        if (idx > -1) {
-            buttons.splice(idx, 1);
-        }
-        buttons.forEach(function(e) {
-            var n = '#' + e;
-            $(n).removeClass('btn-primary');
-            $(n).removeClass('active');
-            $(n).removeAttr('role');
-            $(n).removeAttr('aria-pressed');
-            if (n == 'record') {
-                $('#record').attr('onclick', 'start_record()');
-            }
-        });
-        if (btnName == 'record') {
-            $('#' + btnName).addClass('btn-danger');
-            $('#' + btnName).text('Stop Recording');
-            $('#' + btnName).attr('onclick', 'stop_record()');
-        } else {
-            $('#' + btnName).addClass('btn-primary');
-        }
-        $('#' + btnName).addClass('active');
-        $('#' + btnName).attr('role', 'button');
-        $('#' + btnName).attr('aria-pressed', 'true');
-    }
-
-    function refresh_song_list() {
-        // Refresh the song list
-        $.post('/songs', {}).done(function(response) {
-            console.log('Success in refresh_song_list: response["songs"] = ' + JSON.stringify(response['songs']));
-            $('#song_list ul').empty();
-            response['songs'].forEach(function(song) {
-                console.log('song=' + JSON.stringify(song));
-                var song_name = song['name']; 
-                if (song_name.endsWith('.mid')) {
-                    song_name = song_name.replace('.mid', '');
-                }
-                console.log('song_name=' + JSON.stringify(song_name));
-                $('#song_list ul').append('<li class="list-group-item"><a href="#" class="songlink">' + song_name + '</a></li>');
-            });
-            $('a.songlink').click(function() { single_play(this.text); });
-        }).fail(function(response) {
-            $('#alerty').text('Failed to refresh song list: ' + response['reason']);
-            $('#alerty').toggleClass('hidden alert-danger alert-primary');
-            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
-        });
-    }
-
-    function get_current_mode() {
-        $.get('/mode').done(function(response) {
-            activate_button(response['mode']);
-        }).fail(function() {
-            $('#derp').text('Failed');
-        });
-    }
-
-    function rename_song() {
-        $.post('/rename', {"old": $('#temp_name').val(), "new": $('#song_name').val()}).done(function(response) {
-            $('#songNameModal').modal('hide');
-            $('#alerty').text('Saved file as ' + response['filename'])
-            $('#alerty').toggleClass('hidden alert-danger alert-primary');
-            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
-        }).fail(function(response) {
-            $('#songNameModal').modal('hide');
-            $('#alerty').text('Failed to save file: ' + response['reason']);
-            $('#alerty').toggleClass('hidden alert-danger alert-primary');
-            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
-        });
-        // Clear values from last recording
-        $('#temp_name').val("");
-        $('#song_name').val("");
-        refresh_song_list();
-    }
-
-    function start_record() {
-        $.post('/start_record', {}).done(function(response) {
-            activate_button('record');
-        }).fail(function() {
-            $('#derp').text('Failed');
-        });
-    }
-
-    // TODO: Detect that recording is in progress and call this function
-    // if another button (Jukebox, Live Play) is clicked instead of the
-    // Stop Recording button.
-    function stop_record() {
-        $.post('/stop_record', {}).done(function(response) {
-            activate_button('live_play');
-            $('#record').removeClass('btn-danger');
-            $('#record').text('Record');
-            $('#record').attr('onclick', 'start_record()');
-            console.log(JSON.stringify(response));
-            $('#temp_name').val(response['filename']);
-            $('#songNameModal').modal('show');
-        }).fail(function() {
-            $('#derp').text('Failed');
-        });
-    }
-
-    function start_jukebox() {
-        $.post('/jukebox', {}).done(function(response) {
-            activate_button('jukebox');
-        }).fail(function() {
-            $('#derp').text('Failed');
-        });
-    }
-
-    function start_live_play() {
-        $.post('/live_play', {}).done(function(response) {
-            activate_button('live_play');
-        }).fail(function() {
-            $('#derp').text('Failed');
-        });
-    }
-
-    function single_play(song_name) {
-        console.log(JSON.stringify(song_name));
-        $.post('/single_play', {"song_name": song_name}).done(function(response) {
-            console.log(JSON.stringify(response));
-        }).fail(function(response) {
-            console.log(JSON.stringify(response));
-            $('#alerty').text('Failed to play song: ' + response['reason']);
-            $('#alerty').toggleClass('hidden alert-danger alert-primary');
-            setTimeout(function() { $('#alerty').toggleClass('hidden alert-danger alert-primary'); return false; }, 5000);
-        });
-    }
-
-    function start_reset() {
-        $.post('/reset', {}).done(function(response) {
-            start_live_play();
-        }).fail(function() {
-            $('#derp').text('Failed');
-        });
-    }
-
-    // Page load code
-    get_current_mode();
-    refresh_song_list();
-
-    </script>
+    <script type="text/javascript" src="{{ url_for('static', filename='frontend.js') }}"></script>
 {% endblock %}
 
 {% block app_content %}
@@ -163,7 +21,7 @@
 <h1>R.O.B.O.T.</h1>
 <div class="row">
     <div class="col">
-        <div class="alert alert-primary alert-dismissible hidden" id="alerty" role="alert">
+        <div class="alert alert-primary hidden" id="alerty" role="alert">
               ...
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
@@ -176,9 +34,7 @@
         <button id="live_play" type="button" class="btn btn-lg" onclick="start_live_play()">Live Play</button>
         <button id="record" type="button" class="btn btn-lg" onclick="start_record()">Record</button>
         <button id="jukebox" type="button" class="btn btn-lg" onclick="start_jukebox()">Jukebox</button>
-        <!-- Causing problems, deleting for now
-        <button id="reset" type="button" class="btn btn-lg btn-danger" onclick="start_reset()">Reset</button>
-        --> 
+        <button id="panic" type="button" class="btn btn-lg btn-danger" onclick="start_panic()">Panic</button>
     </div>
 </div>
 
@@ -196,11 +52,6 @@
     </div>
 </div>
 </div>
-
-<!-- Button trigger modal 
-<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalCenter">
-  Launch demo modal
-</button> -->
 
 <!-- Modal -->
 <div class="modal fade" id="songNameModal" tabindex="-1" role="dialog" aria-labelledby="dingus" aria-hidden="true">
@@ -225,9 +76,6 @@
       </div>
     </div>
   </div>
-</div>
-
-<span id="derp"></span>
 </div>
 
 {% endblock %}
