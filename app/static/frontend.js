@@ -46,15 +46,12 @@ function show_alert(text, danger) {
 function refresh_song_list() {
     // Refresh the song list
     $.post('/songs', {}).done(function(response) {
-        console.log('Success in refresh_song_list: response["songs"] = ' + JSON.stringify(response['songs']));
         $('#song_list ul').empty();
         response['songs'].forEach(function(song) {
-            console.log('song=' + JSON.stringify(song));
             var song_name = song['name']; 
             if (song_name.endsWith('.mid')) {
                 song_name = song_name.replace('.mid', '');
             }
-            console.log('song_name=' + JSON.stringify(song_name));
             $('#song_list ul').append('<li class="list-group-item"><a href="#" class="songlink">' + song_name + '</a></li>');
         });
         $('a.songlink').click(function() { single_play(this.text); });
