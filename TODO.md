@@ -9,9 +9,10 @@
     * It can, but might have to switch away from `basicConfig`
 * ~~Add command to play specified songs~~
 * ~~Add command to start playing all songs in `JUKEBOX_DIR` in random order~~
-* Limit note octaves to -1..1
-* Ignore control change events from volume slider, other buttons
-    * Pass pitch/modulation control messages through
+* ~~Limit note octaves to -1..1~~ _(went with -1..+5, configurable)_
+* ~~Ignore control change events from volume slider, other buttons, Pass pitch/modulation control messages through~~
+* Set program to tubas on connect
+    * Code exists, disabled by config because it doesn't work on my setup. Need to test on the Roland and Roger's synth.
 
 ## Jukebox
 * ~~Make song links on index page start playing that song when clicked~~
@@ -34,8 +35,7 @@
 * ~~Download jQuery, Bootstrap and make sure app uses local copies instead of CDN~~
 
 ## Backend
-* Systemd unit files for daemons
-    * Just need to check these in.
+* ~~Systemd unit files for daemons~~
 * Password changes on production Pis
 * Port knocking for SSH?
 
