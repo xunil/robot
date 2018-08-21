@@ -5,9 +5,8 @@
     * ~~Use mido's PortServer~~
 
 ## MIDI Server
-* See if logging module can automatically rotate at size threshold
-    * It can, but might have to switch away from `basicConfig`
 * Mode command should report song being played in jukebox and single play modes
+* ~~Automatically rotate logs at size threshold~~
 * ~~Add command to play specified songs~~
 * ~~Add command to start playing all songs in `JUKEBOX_DIR` in random order~~
 * ~~Limit note octaves to -1..1~~ _(went with -1..+5, configurable)_
