@@ -1,5 +1,6 @@
-from flask import render_template, jsonify, request
+from flask import render_template, flash, jsonify, request, redirect
 from app import app
+from app.forms import LoginForm
 from midiserver.command import command
 from config import *
 from safety import *
@@ -25,8 +26,26 @@ def songs():
 @app.route('/')
 @app.route('/index')
 def index():
-    songs = get_songs()
-    return render_template('index.html', title='Home', songs=songs)
+    if 'robotdocent' in request.cookies:
+        return redirect('/docent')
+    return render_template('index.html', title='Home', unattended_mode=UNATTENDED_MODE)
+
+@app.route('/docent')
+def docent():
+    if not 'robotdocent' in request.cookies:
+        return redirect('/login')
+    return render_template('docent.html', title='Docent', unattended_mode=UNATTENDED_MODE)
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'robotdocent' in request.cookies:
+        return redirect('/docent')
+    form = LoginForm()
+    if form.validate_on_submit() and form.password.data == DOCENT_PASSWORD:
+        resp = app.make_response(redirect('/docent'))
+        resp.set_cookie('robotdocent', value='1')
+        return resp
+    return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/live_play', methods=['POST'])
 def live_play():
@@ -57,9 +76,36 @@ def reset():
     success, result = command(RESET)
     return jsonify({'status': success})
 
+@app.route('/unattended', methods=['POST'])
+def unattended():
+    global UNATTENDED_MODE
+    if not 'robotdocent' in request.cookies:
+        return redirect('/login')
+    sed_command = 's/UNATTENDED_MODE = {}/UNATTENDED_MODE = {}/'.format(UNATTENDED_MODE, not UNATTENDED_MODE)
+    cmd = ['sed', '-e', sed_command, '-i', '--', '/home/pi/robot/config.py']
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    UNATTENDED_MODE = not UNATTENDED_MODE
+    return jsonify({'stdout': out, 'stderr': err, 'unattended_mode': UNATTENDED_MODE})
+
 @app.route('/panic', methods=['POST'])
 def panic():
+    if not 'robotdocent' in request.cookies:
+        return redirect('/login')
     cmd = ['/usr/bin/sudo', '/bin/systemctl', 'restart', 'midiserver.service']
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            stdin=subprocess.PIPE)
+    out,err = p.communicate()
+    return jsonify({'stdout': out, 'stderr': err})
+
+@app.route('/rebootay', methods=['POST'])
+def rebootay():
+    if not 'robotdocent' in request.cookies:
+        return redirect('/login')
+    cmd = ['/usr/bin/sudo', '/sbin/shutdown', '-r', 'now']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
                             stdin=subprocess.PIPE)
@@ -68,7 +114,9 @@ def panic():
 
 @app.route('/lightsout', methods=['POST'])
 def lightsout():
-    cmd = ['/usr/bin/sudo', '/sbin/shutdown', '-r', 'now']
+    if not 'robotdocent' in request.cookies:
+        return redirect('/login')
+    cmd = ['/usr/bin/sudo', '/sbin/poweroff']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
                             stdin=subprocess.PIPE)
@@ -80,7 +128,10 @@ def current_mode():
     success, result = command(MODE)
     if not success:
         return jsonify({'status': False})
-    return jsonify({'status': True, 'mode': result[1]})
+    current_mode = result[1]
+    if UNATTENDED_MODE:
+        current_mode = 'unattended'
+    return jsonify({'status': True, 'mode': current_mode})
 
 @app.route('/rename', methods=['POST'])
 def rename():

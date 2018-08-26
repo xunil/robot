@@ -35,3 +35,7 @@ SET_DEFAULT_PROGRAM_ON_CONNECT = False
 # Where to store files
 RECORDING_DIR = '/home/pi/recordings'
 JUKEBOX_DIR = '/home/pi/jukebox'
+
+DOCENT_PASSWORD = 'nope'
+
+UNATTENDED_MODE = False

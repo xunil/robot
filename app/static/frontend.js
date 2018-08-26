@@ -1,65 +1,5 @@
 // Front end Javascript for the Robot
 
-function activate_button(btnName) {
-    var buttons = ['live_play', 'jukebox', 'record'];
-    var idx = buttons.indexOf(btnName);
-    if (idx > -1) {
-        buttons.splice(idx, 1);
-    }
-    buttons.forEach(function(e) {
-        var n = '#' + e;
-        $(n).removeClass('btn-primary');
-        $(n).removeClass('active');
-        $(n).removeAttr('role');
-        $(n).removeAttr('aria-pressed');
-        if (n == 'record') {
-            $('#record').attr('onclick', 'start_record()');
-        }
-    });
-    if (btnName == 'record') {
-        $('#' + btnName).addClass('btn-danger');
-        $('#' + btnName).text('Stop Recording');
-        $('#' + btnName).attr('onclick', 'stop_record()');
-    } else {
-        $('#' + btnName).addClass('btn-primary');
-    }
-    $('#' + btnName).addClass('active');
-    $('#' + btnName).attr('role', 'button');
-    $('#' + btnName).attr('aria-pressed', 'true');
-}
-
-
-function show_alert(text, danger) {
-    console.log('Alerting with text "' + text + '"');
-    $('#alerty').text(text);
-    if (danger) {
-        $('#alerty').removeClass('alert-primary');
-        $('#alerty').addClass('alert-danger');
-    } else {
-        $('#alerty').removeClass('alert-danger');
-        $('#alerty').addClass('alert-primary');
-    }
-    $('#alerty').toggleClass('hidden');
-    setTimeout(function() { $('#alerty').toggleClass('hidden'); return false; }, 5000);
-}
-
-function refresh_song_list() {
-    // Refresh the song list
-    $.post('/songs', {}).done(function(response) {
-        $('#song_list ul').empty();
-        response['songs'].forEach(function(song) {
-            var song_name = song['name']; 
-            if (song_name.endsWith('.mid')) {
-                song_name = song_name.replace('.mid', '');
-            }
-            $('#song_list ul').append('<li class="list-group-item"><a href="#" class="songlink">' + song_name + '</a></li>');
-        });
-        $('a.songlink').click(function() { single_play(this.text); });
-    }).fail(function(response) {
-        show_alert('Failed to refresh song list: ' + response['reason'], true);
-    });
-}
-
 function get_current_mode() {
     $.get('/mode').done(function(response) {
         activate_button(response['mode']);
@@ -141,6 +81,14 @@ function start_reset() {
     });
 }
 
+function start_unattended() {
+    $.post('/unattended', {}).done(function(response) {
+        get_current_mode();
+    }).fail(function(response) {
+        show_alert('Failed to start unattended mode: ' + response['reason'], true);
+    });
+}
+
 function start_panic() {
     $.post('/panic', {}).done(function(response) {
         show_alert('Restarted services successfully.', false);
@@ -150,8 +98,19 @@ function start_panic() {
     });
 }
 
-// Page load code
-$(document).ready(function() {
-    get_current_mode();
-    refresh_song_list();
-});
+function start_reboot() {
+    $.post('/rebootay', {}).done(function(response) {
+        show_alert('Rebooting.', false);
+    }).fail(function() {
+        show_alert('Failed to reboot!', true);
+    });
+}
+
+function start_poweroff() {
+    $.post('/lightsout', {}).done(function(response) {
+        show_alert('Powering off.', false);
+    }).fail(function() {
+        show_alert('Failed to reboot!', true);
+    });
+}
+
